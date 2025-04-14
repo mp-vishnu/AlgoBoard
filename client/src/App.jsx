@@ -1,10 +1,12 @@
-import viteLogo from '/vite.svg'
 import './App.css'
+import Forms from './Components/Forms'
 
 const App=()=> {
   return (
     <>
-    <h1>hello</h1>
+    <div className="Container">
+      <Forms/>
+    </div>
     </>
   )
 }
