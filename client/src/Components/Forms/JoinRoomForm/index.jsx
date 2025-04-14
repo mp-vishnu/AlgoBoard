@@ -1,7 +1,7 @@
 const JoinRoomForm=()=>{
     return (<form className="w-100 mt-4">
     <div className="form-group mb-3">
-      <label className="form-label">Your Name</label>
+      {/* <label className="form-label">Your Name</label> */}
       <input
         type="text"
         className="form-control"
@@ -10,7 +10,7 @@ const JoinRoomForm=()=>{
     </div>
   
     <div className="form-group mb-3">
-      <label className="form-label">Room Code</label>
+      {/* <label className="form-label">Room Code</label> */}
       <input
         type="text"
         className="form-control"

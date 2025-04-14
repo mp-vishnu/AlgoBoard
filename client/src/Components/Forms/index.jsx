@@ -4,10 +4,7 @@ import "./index.css";
 
 const Forms = () => {
   return (
-    <div
-      className="container d-flex align-items-start justify-content-center min-vh-100"
-      style={{ marginTop: "18vh" }}
-    >
+    <div className="container" style={{ marginTop: "18vh" }}>
       <div className="row w-100 justify-content-center gap-4">
         <div className="col-md-5 bg-white p-4 shadow rounded">
           <h2 className="text-center text-primary mb-4">Create Room</h2>
@@ -23,3 +20,4 @@ const Forms = () => {
 };
 
 export default Forms;
+ 
