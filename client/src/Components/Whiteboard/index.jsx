@@ -38,6 +38,15 @@ const WhiteBoard = ({
           element.height,
           { stroke: element.stroke || "black" }
         );
+      } else if (element.type === "rect") {
+        const x = Math.min(element.offsetX, element.width);
+        const y = Math.min(element.offsetY, element.height);
+        const width = Math.abs(element.width - element.offsetX);
+        const height = Math.abs(element.height - element.offsetY);
+
+        roughCanvas.rectangle(x, y, width, height, {
+          stroke: element.stroke || "black"
+        });
       }
     });
   }, [elements]);
@@ -68,6 +77,18 @@ const WhiteBoard = ({
           stroke: "black"
         }
       ]);
+    } else if (tool === "rect") {
+      setElements((prevElements) => [
+        ...prevElements,
+        {
+          type: "rect",
+          offsetX,
+          offsetY,
+          width: offsetX,
+          height: offsetY,
+          stroke: "black"
+        }
+      ]);
     }
 
     setIsdrawing(true);
@@ -77,7 +98,6 @@ const WhiteBoard = ({
     if (!isDrawing || elements.length === 0) return;
 
     const { offsetX, offsetY } = e.nativeEvent;
-
     const lastIndex = elements.length - 1;
     const lastElement = elements[lastIndex];
 
@@ -97,7 +117,7 @@ const WhiteBoard = ({
           }
         })
       );
-    } else if (tool === "line") {
+    } else if (tool === "line" || tool === "rect") {
       setElements((prevElements) =>
         prevElements.map((ele, index) => {
           if (index === lastIndex) {
