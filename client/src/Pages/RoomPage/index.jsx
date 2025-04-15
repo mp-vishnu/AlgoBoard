@@ -1,20 +1,41 @@
-import { useState,useRef } from "react";
+import { useState, useRef } from "react";
 import "./index.css";
 import WhiteBoard from "../../Components/Whiteboard";
 
 const RoomPage = () => {
-
-  const canvasRef =useRef(null);
-  const ctxRef=useRef(null);
+  const canvasRef = useRef(null);
+  const ctxRef = useRef(null);
 
   const [tool, setTool] = useState("pencil");
   const [color, setColor] = useState("black");
-  const [elements,setElements]=useState([]);
+  const [elements, setElements] = useState([]);
+  const [history, setHistory] = useState([]);
+
+  const handleUndo = () => {
+    if (elements.length === 0) return;
+    const last = elements[elements.length - 1];
+    setHistory((prev) => [...prev, last]);
+    setElements((prev) => prev.slice(0, -1));
+  };
+
+  const handleRedo = () => {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setElements((prev) => [...prev, last]);
+    setHistory((prev) => prev.slice(0, -1));
+  };
+
+  const handleClear = () => {
+    setElements([]);
+    setHistory([]);
+  };
 
   return (
     <div className="container">
-      <div className="text-center pt-4 py-4 fs-1">AlgoCanvas{" "}
-      <span className="text-primary">[Users Online : 0]</span></div>
+      <div className="text-center pt-4 py-4 fs-1">
+        AlgoCanvas <span className="text-primary">[Users Online : 0]</span>
+      </div>
+
       <div className="row align-items-center justify-content-center gap-3 mb-5">
         {/* Tools */}
         <div className="d-flex gap-3 flex-wrap col-auto">
@@ -51,20 +72,25 @@ const RoomPage = () => {
 
         {/* Undo/Redo */}
         <div className="d-flex gap-2 col-auto">
-          <button className="btn btn-primary">Undo</button>
-          <button className="btn btn-outline-primary">Redo</button>
+          <button className="btn btn-primary" onClick={handleUndo}>Undo</button>
+          <button className="btn btn-outline-primary" onClick={handleRedo}>Redo</button>
         </div>
 
         {/* Clear Canvas */}
         <div className="col-auto">
-          <button className="btn btn-danger">Clear Canvas</button>
+          <button className="btn btn-danger" onClick={handleClear}>Clear Canvas</button>
         </div>
       </div>
+
       <div className="col-md-10 mx-auto mt-4 canvas-box">
-        <WhiteBoard canvasRef={canvasRef} ctxRef={ctxRef}
-        elements={elements}
-        setElements={setElements}
-        tool={tool}/>
+        <WhiteBoard
+          canvasRef={canvasRef}
+          ctxRef={ctxRef}
+          elements={elements}
+          setElements={setElements}
+          tool={tool}
+          color={color}
+        />
       </div>
     </div>
   );

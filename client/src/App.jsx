@@ -2,7 +2,7 @@ import './App.css';
 import {Route , Routes} from "react-router-dom";
 
 import Forms from './Components/Forms';
-import RoomPage from "./pages/RoomPage"; 
+import RoomPage from './Pages/RoomPage';
 const App=()=> {
   return (
     <>

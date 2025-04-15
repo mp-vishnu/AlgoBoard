@@ -8,21 +8,30 @@ const WhiteBoard = ({
   ctxRef,
   elements,
   setElements,
-  tool
+  tool,
+  color,
+  history,
+  setHistory
 }) => {
-  const [isDrawing, setIsdrawing] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    const ctx = canvas.getContext("2d");
-    ctxRef.current = ctx;
+    if (canvas) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      const ctx = canvas.getContext("2d");
+      ctxRef.current = ctx;
+    }
   }, []);
 
   useLayoutEffect(() => {
     const roughCanvas = rough.canvas(canvasRef.current);
-    roughCanvas.ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    // Ensure ctxRef.current is not null before clearing and redrawing
+    if (ctxRef.current) {
+      ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
 
     elements.forEach((element) => {
       const stroke = element.stroke || "black";
@@ -54,29 +63,24 @@ const WhiteBoard = ({
       offsetY,
       width: offsetX,
       height: offsetY,
-      stroke: "black"
+      stroke: color
     };
 
+    let newElement;
     if (tool === "pencil") {
-      setElements((prev) => [
-        ...prev,
-        {
-          type: "pencil",
-          offsetX,
-          offsetY,
-          path: [[offsetX, offsetY]],
-          stroke: "black"
-        }
-      ]);
-    } else if (tool === "line") {
-      setElements((prev) => [...prev, { ...baseElement, type: "line" }]);
-    } else if (tool === "rect") {
-      setElements((prev) => [...prev, { ...baseElement, type: "rect" }]);
-    } else if (tool === "circle") {
-      setElements((prev) => [...prev, { ...baseElement, type: "circle" }]);
+      newElement = {
+        type: "pencil",
+        offsetX,
+        offsetY,
+        path: [[offsetX, offsetY]],
+        stroke: color
+      };
+    } else {
+      newElement = { ...baseElement, type: tool };
     }
 
-    setIsdrawing(true);
+    setElements((prev) => [...prev, newElement]);
+    setIsDrawing(true);
   };
 
   const handleMouseMove = (e) => {
@@ -94,7 +98,7 @@ const WhiteBoard = ({
           index === lastIndex ? { ...el, path: newPath } : el
         )
       );
-    } else if (["line", "rect", "circle"].includes(tool)) {
+    } else {
       setElements((prev) =>
         prev.map((el, index) =>
           index === lastIndex ? { ...el, width: offsetX, height: offsetY } : el
@@ -104,7 +108,8 @@ const WhiteBoard = ({
   };
 
   const handleMouseUp = () => {
-    setIsdrawing(false);
+    setIsDrawing(false);
+    setHistory([]); // Clear redo history when new element is added
   };
 
   return (
