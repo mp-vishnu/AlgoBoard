@@ -1,79 +1,98 @@
-import {useEffect,useState,useLayoutEffect} from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import rough from "roughjs";
 
-const roughGenerator=rough.generator();
+const roughGenerator = rough.generator();
 
-const WhiteBoard=({
+const WhiteBoard = ({
   canvasRef,
   ctxRef,
   elements,
-  setElements
-}) =>{
-  //to check drawing
-  const [isDrawing,setIsdrawing]=useState(false);
+  setElements,
+  tool
+}) => {
+  const [isDrawing, setIsdrawing] = useState(false);
 
-  useEffect(()=>{
-  const canvas=canvasRef.current;
-  const ctx=canvas.getContext("2d");
+  useEffect(() => {
+    const canvas = canvasRef.current;
+  
+    // Set actual drawing dimensions to match CSS size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  
+    const ctx = canvas.getContext("2d");
+    ctxRef.current = ctx;
+  }, []);  
+  useLayoutEffect(() => {
+    const roughCanvas = rough.canvas(canvasRef.current);
+    roughCanvas.ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    elements.forEach((element) => {
+      if (element.type === "pencil") {
+        roughCanvas.linearPath(element.path, { stroke: element.stroke || "black" });
+      }
+    });
+  }, [elements]);
 
-  ctxRef.current=ctx;
-  },[]);
+  const handleMouseDown = (e) => {
+    const { offsetX, offsetY } = e.nativeEvent;
 
-  useLayoutEffect(()=>{
-    const roughCanvas=rough.canvas(canvasRef.current);
-    elements.forEach((element)=>{
-      roughCanvas.linearPath(element.path);
-    })
-  },[elements])
-  const handleMouseDown=(e)=>{
-    const {offsetX,offsetY}=e.nativeEvent;
-    setElements((prevElements)=>[
-      ...prevElements,
-      {
-        type:"pencil",
-        offsetX,
-        offsetY,
-        path:[[offsetX,offsetY]],
-        stroke:"black",
-      },
-    ]);
-    setIsdrawing(true);
-  }
-  const handleMouseMove=(e)=>{
-    const {offsetX,offsetY}=e.nativeEvent;
-    if(isDrawing){
-      //pencil by default as static
-      const {path}=elements[elements.length-1];
-      const newPath=[...path,[offsetX,offsetY]]; 
-     setElements((prevElements)=>
-      prevElements.map((ele,index)=>{
-        if(index==elements.length-1){
-          return {
-            ...ele,
-            path:newPath
-          }
+    if (tool === "pencil") {
+      setElements((prevElements) => [
+        ...prevElements,
+        {
+          type: "pencil",
+          offsetX,
+          offsetY,
+          path: [[offsetX, offsetY]],
+          stroke: "black"
         }
-        else{
-          return 
-        }
-      })
-     ) 
+      ]);
     }
-  }
-  const handleMouseUp=(e)=>{
-   setIsdrawing(false);
-  }
+
+    setIsdrawing(true);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDrawing || elements.length === 0) return;
+
+    const { offsetX, offsetY } = e.nativeEvent;
+
+    const lastElement = elements[elements.length - 1];
+    if (!lastElement || !lastElement.path) return;
+
+    const { path } = lastElement;
+    const newPath = [...path, [offsetX, offsetY]];
+
+    if (tool === "pencil") {
+      setElements((prevElements) =>
+        prevElements.map((ele, index) => {
+          if (index === elements.length - 1) {
+            return {
+              ...ele,
+              path: newPath
+            };
+          } else {
+            return ele;
+          }
+        })
+      );
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsdrawing(false);
+  };
+
   return (
     <>
-    {/* {JSON.stringify(elements)} */}
-     <canvas 
-    ref={canvasRef}
-    onMouseDown={handleMouseDown}
-    onMouseMove={handleMouseMove}
-    onMouseUp={handleMouseUp}
-    className="border border-dark border-2 h-100 w-100"></canvas>
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        className="border border-dark border-2 h-100 w-100"
+      ></canvas>
     </>
-  )
-}
+  );
+};
 
-export default WhiteBoard
+export default WhiteBoard;

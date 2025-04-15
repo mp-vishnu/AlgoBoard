@@ -63,7 +63,8 @@ const RoomPage = () => {
       <div className="col-md-10 mx-auto mt-4 canvas-box">
         <WhiteBoard canvasRef={canvasRef} ctxRef={ctxRef}
         elements={elements}
-        setElements={setElements}/>
+        setElements={setElements}
+        tool={tool}/>
       </div>
     </div>
   );
