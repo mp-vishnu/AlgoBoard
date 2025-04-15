@@ -24,41 +24,45 @@ app.use("/", basic); // Use routes defined in basicRouter
 let imageUrl, userRoom;
 io.on("connection", (socket) => {
   // User joins the room
-  socket.on("user-joined", (data) => {
-    const { roomId, userId, userName, host, presenter } = data;
-    userRoom = roomId;
-    const user = userJoin(socket.id, userName, roomId, host, presenter);
-    const roomUsers = getUsers(user.room);
-    socket.join(user.room);
-    socket.emit("message", {
-      message: "Welcome to ChatRoom",
-    });
-    socket.broadcast.to(user.room).emit("message", {
-      message: `${user.username} has joined`,
-    });
+  // socket.on("user-joined", (data) => {
+  //   const { roomId, userId, userName, host, presenter } = data;
+  //   userRoom = roomId;
+  //   const user = userJoin(socket.id, userName, roomId, host, presenter);
+  //   const roomUsers = getUsers(user.room);
+  //   socket.join(user.room);
+  //   socket.emit("message", {
+  //     message: "Welcome to ChatRoom",
+  //   });
+  //   socket.broadcast.to(user.room).emit("message", {
+  //     message: `${user.username} has joined`,
+  //   });
 
-    io.to(user.room).emit("users", roomUsers);
-    io.to(user.room).emit("canvasImage", imageUrl);
-  });
-
-  // Handle drawing
-  socket.on("drawing", (data) => {
-    imageUrl = data;
-    socket.broadcast.to(userRoom).emit("canvasImage", imageUrl);
-  });
-
-  // Handle disconnect
-  socket.on("disconnect", () => {
-    const userLeaves = userLeave(socket.id);
-    const roomUsers = getUsers(userRoom);
-
-    if (userLeaves) {
-      io.to(userLeaves.room).emit("message", {
-        message: `${userLeaves.username} left the chat`,
-      });
-      io.to(userLeaves.room).emit("users", roomUsers);
-    }
+  //   io.to(user.room).emit("users", roomUsers);
+  //   io.to(user.room).emit("canvasImage", imageUrl);
+  socket.on("userJoined", (data) => {
+    const { name, useId, roomId, host, presenter } = data;
+    socket.join(roomId);
+    socket.emit("userIsJoined", { success: true });
   });
 });
+
+// Handle drawing
+// socket.on("drawing", (data) => {
+//   imageUrl = data;
+//   socket.broadcast.to(userRoom).emit("canvasImage", imageUrl);
+// });
+
+// Handle disconnect
+// socket.on("disconnect", () => {
+//   const userLeaves = userLeave(socket.id);
+//   const roomUsers = getUsers(userRoom);
+
+//   if (userLeaves) {
+//     io.to(userLeaves.room).emit("message", {
+//       message: `${userLeaves.username} left the chat`,
+//     });
+//     io.to(userLeaves.room).emit("users", roomUsers);
+//   }
+// });
 
 module.exports = { app, server };
