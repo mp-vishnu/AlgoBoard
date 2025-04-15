@@ -14,20 +14,30 @@ const WhiteBoard = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-  
+
     // Set actual drawing dimensions to match CSS size
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
-  
+
     const ctx = canvas.getContext("2d");
     ctxRef.current = ctx;
-  }, []);  
+  }, []);
+
   useLayoutEffect(() => {
     const roughCanvas = rough.canvas(canvasRef.current);
     roughCanvas.ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
     elements.forEach((element) => {
       if (element.type === "pencil") {
         roughCanvas.linearPath(element.path, { stroke: element.stroke || "black" });
+      } else if (element.type === "line") {
+        roughCanvas.line(
+          element.offsetX,
+          element.offsetY,
+          element.width,
+          element.height,
+          { stroke: element.stroke || "black" }
+        );
       }
     });
   }, [elements]);
@@ -46,6 +56,18 @@ const WhiteBoard = ({
           stroke: "black"
         }
       ]);
+    } else if (tool === "line") {
+      setElements((prevElements) => [
+        ...prevElements,
+        {
+          type: "line",
+          offsetX,
+          offsetY,
+          width: offsetX,
+          height: offsetY,
+          stroke: "black"
+        }
+      ]);
     }
 
     setIsdrawing(true);
@@ -56,19 +78,33 @@ const WhiteBoard = ({
 
     const { offsetX, offsetY } = e.nativeEvent;
 
-    const lastElement = elements[elements.length - 1];
-    if (!lastElement || !lastElement.path) return;
-
-    const { path } = lastElement;
-    const newPath = [...path, [offsetX, offsetY]];
+    const lastIndex = elements.length - 1;
+    const lastElement = elements[lastIndex];
 
     if (tool === "pencil") {
+      const { path } = lastElement;
+      const newPath = [...path, [offsetX, offsetY]];
+
       setElements((prevElements) =>
         prevElements.map((ele, index) => {
-          if (index === elements.length - 1) {
+          if (index === lastIndex) {
             return {
               ...ele,
               path: newPath
+            };
+          } else {
+            return ele;
+          }
+        })
+      );
+    } else if (tool === "line") {
+      setElements((prevElements) =>
+        prevElements.map((ele, index) => {
+          if (index === lastIndex) {
+            return {
+              ...ele,
+              width: offsetX,
+              height: offsetY
             };
           } else {
             return ele;
