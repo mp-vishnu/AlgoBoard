@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useLayoutEffect } from "react";
 import rough from "roughjs";
 
@@ -11,9 +12,42 @@ const WhiteBoard = ({
   tool,
   color,
   history,
-  setHistory
+  setHistory,
+  user,
+  socket,
+  roomId,
 }) => {
+  const [img, setImg] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  useEffect(() => {
+    socket.on("whiteBoardDataResponse", (data) => {
+      setImg(data.imgURL);
+    });
+
+    // Cleanup on unmount
+    // return () => {
+    //   socket.off("whiteBoardDataResponse");
+    // };
+  }, []);
+
+  if (!user?.presenter) {
+    return (
+      <div className="border border-dark border-2 h-100 w-100 overflow-hidden">
+        {img ? (
+          <img
+            src={img}
+            alt="Real-time whiteboard image shared by presenter"
+            className="w-100 h-100"
+          />
+        ) : (
+          <div className="text-center text-muted p-3">
+            Waiting for presenter...
+          </div>
+        )}
+      </div>
+    );
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,15 +57,18 @@ const WhiteBoard = ({
       const ctx = canvas.getContext("2d");
       ctxRef.current = ctx;
     }
-  }, []);
+  }, [canvasRef]);
 
   useLayoutEffect(() => {
-    const roughCanvas = rough.canvas(canvasRef.current);
+    if (!canvasRef?.current || !ctxRef?.current) return;
 
-    // Ensure ctxRef.current is not null before clearing and redrawing
-    if (ctxRef.current) {
-      ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
+    const roughCanvas = rough.canvas(canvasRef.current);
+    ctxRef.current.clearRect(
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height
+    );
 
     elements.forEach((element) => {
       const stroke = element.stroke || "black";
@@ -39,7 +76,13 @@ const WhiteBoard = ({
       if (element.type === "pencil") {
         roughCanvas.linearPath(element.path, { stroke });
       } else if (element.type === "line") {
-        roughCanvas.line(element.offsetX, element.offsetY, element.width, element.height, { stroke });
+        roughCanvas.line(
+          element.offsetX,
+          element.offsetY,
+          element.width,
+          element.height,
+          { stroke }
+        );
       } else if (element.type === "rect") {
         const x = Math.min(element.offsetX, element.width);
         const y = Math.min(element.offsetY, element.height);
@@ -48,11 +91,17 @@ const WhiteBoard = ({
         roughCanvas.rectangle(x, y, width, height, { stroke });
       } else if (element.type === "circle") {
         const radius = Math.sqrt(
-          Math.pow(element.width - element.offsetX, 2) + Math.pow(element.height - element.offsetY, 2)
+          Math.pow(element.width - element.offsetX, 2) +
+            Math.pow(element.height - element.offsetY, 2)
         );
-        roughCanvas.circle(element.offsetX, element.offsetY, radius * 2, { stroke });
+        roughCanvas.circle(element.offsetX, element.offsetY, radius * 2, {
+          stroke,
+        });
       }
     });
+
+    const canvasImage = canvasRef.current.toDataURL();
+    socket.emit("whiteboardData", { imgURL: canvasImage, roomId });
   }, [elements]);
 
   const handleMouseDown = (e) => {
@@ -63,7 +112,7 @@ const WhiteBoard = ({
       offsetY,
       width: offsetX,
       height: offsetY,
-      stroke: color
+      stroke: color,
     };
 
     let newElement;
@@ -73,7 +122,7 @@ const WhiteBoard = ({
         offsetX,
         offsetY,
         path: [[offsetX, offsetY]],
-        stroke: color
+        stroke: color,
       };
     } else {
       newElement = { ...baseElement, type: tool };
@@ -101,7 +150,9 @@ const WhiteBoard = ({
     } else {
       setElements((prev) =>
         prev.map((el, index) =>
-          index === lastIndex ? { ...el, width: offsetX, height: offsetY } : el
+          index === lastIndex
+            ? { ...el, width: offsetX, height: offsetY }
+            : el
         )
       );
     }
@@ -109,7 +160,9 @@ const WhiteBoard = ({
 
   const handleMouseUp = () => {
     setIsDrawing(false);
-    setHistory([]); // Clear redo history when new element is added
+    if (typeof setHistory === "function") {
+      setHistory([]); // Reset redo stack
+    }
   };
 
   return (
@@ -119,7 +172,7 @@ const WhiteBoard = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       className="border border-dark border-2 h-100 w-100"
-    ></canvas>
+    />
   );
 };
 

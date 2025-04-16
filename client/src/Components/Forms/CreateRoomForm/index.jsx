@@ -1,63 +1,84 @@
 import { useState } from "react";
-import {useNavigate} from "react-router-dom";
-const CreateRoomForm = ({uuid,socket,setUser}) => {
-  const[roomId,setRoomId]=useState(uuid());
-  const[name,setName]=useState("");
+import { useNavigate } from "react-router-dom";
 
-  const navigate=useNavigate();
+const CreateRoomForm = ({ uuid, socket, setUser }) => {
+  const [roomId, setRoomId] = useState(uuid());
+  const [name, setName] = useState("");
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCreateRoom=(e)=>{
+  const handleCreateRoom = (e) => {
     e.preventDefault();
-    // name,roomId,useId, host, presenter
-    const roomData={
-      name,roomId,
-      useId:uuid(),
-      host:true,
-      presenter:true
+    
+    if (!name.trim()) {
+      alert("Please enter your name.");
+      return;
     }
-   setUser(roomData);
-   navigate(`/${roomId}`);
-   console.log(roomData);
-  socket.emit("userJoined",roomData);
-  }
-    return (
-      <form className="w-100 mt-4">
-        <div className="form-group mb-3">
-          {/* <label className="form-label">Your Name</label> */}
+  
+    const userData = {
+      name,
+      roomId,
+      presenter: true,
+    };
+  
+    setUser(userData); // update the user state
+    socket.emit("createRoom", userData); // emit to server
+    navigate(`/${roomId}`); // navigate to room page
+  };
+  
+
+  const handleGenerate = () => {
+    const newId = uuid();
+    setRoomId(newId);
+    setCopied(false);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(roomId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2s
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+    }
+  };
+
+  return (
+    <form onSubmit={handleCreateRoom}>
+      <div className="mb-3">
+        <label className="form-label">Your Name</label>
+        <input
+          type="text"
+          className="form-control"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="mb-3">
+        <label className="form-label">Room ID</label>
+        <div className="input-group">
           <input
             type="text"
             className="form-control"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e)=>setName(e.target.value)}
+            value={roomId}
+            readOnly
           />
+          <button type="button" className="btn btn-outline-secondary" onClick={handleGenerate}>
+            Generate
+          </button>
+          <button type="button" className="btn btn-outline-secondary" onClick={handleCopy}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
         </div>
-  
-        <div className="form-group mb-3">
-          {/* <label className="form-label">Room Code</label> */}
-          <div className="input-group">
-            <input
-              type="text"
-              value={roomId}
-              className="form-control"
-              placeholder="Generate room code"
-              disabled
-            />
-            <button className="btn btn-outline-primary" onClick={()=>setRoomId(uuid())} type="button">
-              Generate
-            </button>
-            <button className="btn btn-outline-secondary" type="button">
-              Copy
-            </button>
-          </div>
-        </div>
-  
-        <button type="submit" onClick={handleCreateRoom} className="btn btn-primary w-100 mt-3">
-          Create Room
-        </button>
-      </form>
-    );
-  };
-  
-  export default CreateRoomForm;
-  
+      </div>
+
+      <button className="btn btn-primary w-100" type="submit">
+        Create & Join
+      </button>
+    </form>
+  );
+};
+
+export default CreateRoomForm;

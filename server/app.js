@@ -21,30 +21,52 @@ const basic = require("./router/basicRouter");
 app.use("/", basic); // Use routes defined in basicRouter
 
 // Socket.IO logic
-let imageUrl, userRoom;
-io.on("connection", (socket) => {
-  // User joins the room
-  // socket.on("user-joined", (data) => {
-  //   const { roomId, userId, userName, host, presenter } = data;
-  //   userRoom = roomId;
-  //   const user = userJoin(socket.id, userName, roomId, host, presenter);
-  //   const roomUsers = getUsers(user.room);
-  //   socket.join(user.room);
-  //   socket.emit("message", {
-  //     message: "Welcome to ChatRoom",
-  //   });
-  //   socket.broadcast.to(user.room).emit("message", {
-  //     message: `${user.username} has joined`,
-  //   });
+// let roomIdGlobal, imgURLGlobal;
+// io.on("connection", (socket) => {
+// User joins the room
+// socket.on("user-joined", (data) => {
+//   const { roomId, userId, userName, host, presenter } = data;
+//   userRoom = roomId;
+//   const user = userJoin(socket.id, userName, roomId, host, presenter);
+//   const roomUsers = getUsers(user.room);
+//   socket.join(user.room);
+//   socket.emit("message", {
+//     message: "Welcome to ChatRoom",
+//   });
+//   socket.broadcast.to(user.room).emit("message", {
+//     message: `${user.username} has joined`,
+//   });
 
-  //   io.to(user.room).emit("users", roomUsers);
-  //   io.to(user.room).emit("canvasImage", imageUrl);
+//   io.to(user.room).emit("users", roomUsers);
+//   io.to(user.room).emit("canvasImage", imageUrl);
+
+// Socket.IO logic
+let roomIdGlobal, imgURLGlobal;
+
+io.on("connection", (socket) => {
   socket.on("userJoined", (data) => {
     const { name, useId, roomId, host, presenter } = data;
+    roomIdGlobal = roomId;
     socket.join(roomId);
     socket.emit("userIsJoined", { success: true });
+
+    if (imgURLGlobal) {
+      socket.emit("whiteBoardDataResponse", {
+        imgURL: imgURLGlobal,
+      });
+    }
+  });
+
+  socket.on("whiteboardData", ({ imgURL, roomId }) => {
+    console.log("Broadcasting whiteboard data to room:", roomId);
+    imgURLGlobal = imgURL;
+
+    socket.broadcast.to(roomId).emit("whiteBoardDataResponse", {
+      imgURL,
+    });
   });
 });
+// });
 
 // Handle drawing
 // socket.on("drawing", (data) => {
