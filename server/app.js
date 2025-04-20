@@ -1,90 +1,78 @@
+// --- server.js ---
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const socketIO = require("socket.io");
 const dotenv = require("dotenv");
-const { userJoin, getUsers, userLeave } = require("./utils/user");
+const {
+  userJoin,
+  getUsers,
+  userLeave,
+  addUser,
+  removeUserFromRoom,
+  getUsersInRoom,
+} = require("./utils/user");
 
 // Load environment variables
 dotenv.config({ path: "config/config.env" });
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server); // Integrate socket.io with the express server
+const io = socketIO(server);
 
-// Middleware setup
-app.use(express.json()); // req/res format
+app.use(express.json());
 app.use(cors());
 
-// Route imports
 const basic = require("./router/basicRouter");
-app.use("/", basic); // Use routes defined in basicRouter
+app.use("/", basic);
 
-// Socket.IO logic
-// let roomIdGlobal, imgURLGlobal;
-// io.on("connection", (socket) => {
-// User joins the room
-// socket.on("user-joined", (data) => {
-//   const { roomId, userId, userName, host, presenter } = data;
-//   userRoom = roomId;
-//   const user = userJoin(socket.id, userName, roomId, host, presenter);
-//   const roomUsers = getUsers(user.room);
-//   socket.join(user.room);
-//   socket.emit("message", {
-//     message: "Welcome to ChatRoom",
-//   });
-//   socket.broadcast.to(user.room).emit("message", {
-//     message: `${user.username} has joined`,
-//   });
-
-//   io.to(user.room).emit("users", roomUsers);
-//   io.to(user.room).emit("canvasImage", imageUrl);
-
-// Socket.IO logic
 let roomIdGlobal, imgURLGlobal;
 
 io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
   socket.on("userJoined", (data) => {
-    const { name, useId, roomId, host, presenter } = data;
+    const { name, userId, roomId, host, presenter } = data;
     roomIdGlobal = roomId;
     socket.join(roomId);
-    socket.emit("userIsJoined", { success: true });
+
+    const users = addUser({ ...data, socketId: socket.id });
+    io.to(roomId).emit("userIsJoined", { success: true, users });
 
     if (imgURLGlobal) {
-      socket.emit("whiteBoardDataResponse", {
-        imgURL: imgURLGlobal,
-      });
+      socket.emit("whiteBoardDataResponse", { imgURL: imgURLGlobal });
     }
   });
 
   socket.on("whiteboardData", ({ imgURL, roomId }) => {
-    console.log("Broadcasting whiteboard data to room:", roomId);
     imgURLGlobal = imgURL;
+    socket.broadcast.to(roomId).emit("whiteBoardDataResponse", { imgURL });
+  });
 
-    socket.broadcast.to(roomId).emit("whiteBoardDataResponse", {
-      imgURL,
+  socket.on("leaveRoom", ({ roomId }) => {
+    removeUserFromRoom(socket.id, roomId);
+    const users = getUsersInRoom(roomId);
+
+    if (users.length === 0) {
+      console.log(`Room ${roomId} is now empty.`);
+    } else {
+      io.to(roomId).emit("userIsJoined", { success: true, users });
+    }
+
+    socket.leave(roomId);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+
+    const roomsToUpdate = removeUserFromRoom(socket.id);
+    roomsToUpdate.forEach((roomId) => {
+      const users = getUsersInRoom(roomId);
+      if (users.length > 0) {
+        io.to(roomId).emit("userIsJoined", { success: true, users });
+      }
     });
   });
 });
-// });
-
-// Handle drawing
-// socket.on("drawing", (data) => {
-//   imageUrl = data;
-//   socket.broadcast.to(userRoom).emit("canvasImage", imageUrl);
-// });
-
-// Handle disconnect
-// socket.on("disconnect", () => {
-//   const userLeaves = userLeave(socket.id);
-//   const roomUsers = getUsers(userRoom);
-
-//   if (userLeaves) {
-//     io.to(userLeaves.room).emit("message", {
-//       message: `${userLeaves.username} left the chat`,
-//     });
-//     io.to(userLeaves.room).emit("users", roomUsers);
-//   }
-// });
 
 module.exports = { app, server };

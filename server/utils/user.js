@@ -1,24 +1,36 @@
+// --- utils/user.js ---
+
 let users = [];
 
-// Join user to room
-function userJoin(id, username, room, host, presenter) {
-  const user = { id, username, room, host, presenter };
-  users.push(user);
-  return user;
-}
+const addUser = (userData) => {
+  users = users.filter((u) => u.socketId !== userData.socketId);
+  users.push(userData);
+  return getUsersInRoom(userData.roomId);
+};
 
-// Get all users in a room
-function getUsers(room) {
-  return users.filter((user) => user.room === room);
-}
+const getUsers = () => users;
 
-// User leaves a room
-function userLeave(id) {
-  const index = users.findIndex((user) => user.id === id);
+const getUsersInRoom = (roomId) => {
+  return users.filter((user) => user.roomId === roomId);
+};
 
-  if (index !== -1) {
-    return users.splice(index, 1)[0];
+const removeUserFromRoom = (socketId, roomId = null) => {
+  const user = users.find((u) => u.socketId === socketId);
+  if (!user) return [];
+
+  users = users.filter((u) => u.socketId !== socketId);
+
+  if (roomId) {
+    return getUsersInRoom(roomId);
+  } else {
+    // Return affected rooms for cleanup
+    return [...new Set(users.map((u) => u.roomId))];
   }
-}
+};
 
-module.exports = { userJoin, getUsers, userLeave };
+module.exports = {
+  addUser,
+  getUsers,
+  getUsersInRoom,
+  removeUserFromRoom,
+};

@@ -7,7 +7,7 @@ import io from "socket.io-client";
 import './App.css';
 import Forms from './Components/Forms';
 import RoomPage from './Pages/Room';
-
+import Hello from "./Hello";
 const server = "http://localhost:8000";
 const connectionOptions = {
   "force new connection": true,
@@ -20,11 +20,13 @@ const socket = io(server, connectionOptions);
 
 const App = () => {
   const [user, setUser] = useState(null);
+  const [users,setUsers]=useState([]);
 
   useEffect(() => {
     socket.on("userIsJoined", (data) => {
       if (data.success) {
-        console.log("userJoined",user);
+        console.log("userJoined",data.users);
+        setUsers(data.users);
       } else {
         console.log("userJoined error");
       }
@@ -40,7 +42,8 @@ const App = () => {
     <div className="Container">
       <Routes>
         <Route path="/" element={<Forms uuid={uuid} socket={socket} setUser={setUser} />} />
-        <Route path="/:roomId" element={<RoomPage user={user} socket={socket} />} />
+        <Route path="/:roomId" element={<RoomPage user={user} socket={socket} users={users}/>} />
+        <Route path="abcd" element={<Hello/>}/>
       </Routes>
     </div>
   );

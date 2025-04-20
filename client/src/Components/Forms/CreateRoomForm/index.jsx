@@ -9,7 +9,7 @@ const CreateRoomForm = ({ uuid, socket, setUser }) => {
 
   const handleCreateRoom = (e) => {
     e.preventDefault();
-    
+  
     if (!name.trim()) {
       alert("Please enter your name.");
       return;
@@ -18,12 +18,14 @@ const CreateRoomForm = ({ uuid, socket, setUser }) => {
     const userData = {
       name,
       roomId,
+      userId: uuid(),   // 🔥 userId is required on server side
       presenter: true,
+      host: true,
     };
   
-    setUser(userData); // update the user state
-    socket.emit("createRoom", userData); // emit to server
-    navigate(`/${roomId}`); // navigate to room page
+    setUser(userData);
+    socket.emit("userJoined", userData); // 🔥 fixed event name
+    navigate(`/${roomId}`);
   };
   
 
