@@ -1,9 +1,12 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import MonacoEditor from "react-monaco-editor"; // Using react-monaco-editor
 import "./index.css";
 import WhiteBoard from "../../Components/Whiteboard";
 import { useParams } from "react-router-dom";
 
 const RoomPage = ({ user, socket, users }) => {
+  const navigate = useNavigate();
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
 
@@ -11,8 +14,8 @@ const RoomPage = ({ user, socket, users }) => {
   const [color, setColor] = useState("black");
   const [elements, setElements] = useState([]);
   const [history, setHistory] = useState([]);
-  const [openedUserTab,setopenedUserTab]=useState(true);
-
+  const [openedUserTab, setopenedUserTab] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const { roomId } = useParams(); // 👈 Get roomId from URL
 
   const handleUndo = () => {
@@ -34,37 +37,89 @@ const RoomPage = ({ user, socket, users }) => {
     setHistory([]);
   };
 
+  // Navigate to Code Editor Page
+  const navigateToCodeEditor = () => {
+    navigate('/codeeditor');
+  };
+
   return (
     <div className="container">
-      <button type="button"   onClick={()=>{setopenedUserTab(false)}} className="btn btn-dark"
-      style={{
-        display:"block",
-        position:"absolute",
-        top:"13%",
-        left:"5%",
-        height:"40px",
-        width:"100px",
-      }} >Users</button>
-      {
-        !openedUserTab && (
-          <div className="position-fixed top-0 left-0 h-100 text-white bg-dark" 
-          style={{width:"250px", left:"0%"}}>
-            <button type="button" onClick={()=>{setopenedUserTab(true)}} className="btn btn-light w-100 mt-5">
-              Close</button>
-              <div className="w-100 mt-5 pt-5">
-              {users.map((usr,index)=>(
-                <p key={index*999} className="my-2 text-center w-100">{usr.name}{user && user.userId==usr.userId && "(You)"}</p>
-              ))}</div>
-              </div>
-        )
-      }
-      <div className="text-center pt-4 py-4 fs-1">
-        AlgoCanvas <span className="text-primary">[Users Online ihhi: {users.length}]</span>
+
+      {/* Show AlgoBoard Button */}
+      {!openedUserTab && (
+  <button
+    type="button"
+    onClick={() => setopenedUserTab(true)}
+    className="btn btn-dark"
+    style={{
+      position: "fixed",
+      top: "10px",
+      left: "10px",
+      height: "40px",
+      width: "120px",
+      zIndex: 999,
+      borderTopRightRadius: "8px",
+      borderBottomRightRadius: "8px"
+    }}
+  >
+    AlgoBoard &gt;
+  </button>
+)}
+
+
+      {/* Sidebar */}
+      <div className={`sidebar ${openedUserTab ? "open" : ""}`}>
+        <button
+          type="button"
+          onClick={() => setopenedUserTab(false)}
+          className="btn btn-light w-100 mt-4"
+        >
+          ← Close
+        </button>
+
+        <div className="w-100 mt-5 pt-3 px-3">
+          <div
+            onClick={() => setShowUserList((prev) => !prev)}
+            className="d-flex justify-content-between align-items-center btn btn-secondary w-100"
+          >
+            <span>Users</span>
+            <span>{showUserList ? "▲" : "▼"}</span>
+          </div>
+
+          {showUserList && (
+            <div className="mt-2">
+              {users.map((usr, index) => (
+                <p key={index * 999} className="my-2 text-center w-100">
+                  {usr.name}
+                  {user && user.userId === usr.userId && " (You)"}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+
+      
+
+        {/* Navigate to Code Editor */}
+        <button
+          onClick={navigateToCodeEditor}
+          className="btn btn-success w-100 mt-4"
+        >
+          Code Editor
+        </button>
       </div>
 
+      {/* Header */}
+      <div className="text-center pt-4 py-4 fs-3">
+        AlgoCanvas{" "}
+        <span className="text-primary">[Users Online: {users.length}]</span>
+      </div>
+
+      {/* Drawing Tools (only for presenter) */}
       {user?.presenter && (
         <div className="row align-items-center justify-content-center gap-3 mb-5">
-          {/* Tools */}
+
+          {/* Tool Options */}
           <div className="d-flex gap-3 flex-wrap col-auto">
             {["pencil", "line", "rect", "circle"].map((t) => (
               <div
@@ -102,7 +157,7 @@ const RoomPage = ({ user, socket, users }) => {
             />
           </div>
 
-          {/* Undo/Redo */}
+          {/* Undo / Redo */}
           <div className="d-flex gap-2 col-auto">
             <button className="btn btn-primary" onClick={handleUndo}>
               Undo
@@ -121,6 +176,7 @@ const RoomPage = ({ user, socket, users }) => {
         </div>
       )}
 
+      {/* Whiteboard */}
       <div className="col-md-10 mx-auto mt-4 canvas-box">
         <WhiteBoard
           canvasRef={canvasRef}
@@ -133,7 +189,7 @@ const RoomPage = ({ user, socket, users }) => {
           socket={socket}
           history={history}
           setHistory={setHistory}
-          roomId={roomId} 
+          roomId={roomId}
         />
       </div>
     </div>

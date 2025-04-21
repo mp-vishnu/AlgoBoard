@@ -1,13 +1,13 @@
-
-
 import { Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import './App.css';
 import Forms from './Components/Forms';
 import RoomPage from './Pages/Room';
-import Hello from "./Hello";
+import CodeEditor from "./Pages/Editor/CodeEditor";
 const server = "http://localhost:8000";
 const connectionOptions = {
   "force new connection": true,
@@ -20,17 +20,28 @@ const socket = io(server, connectionOptions);
 
 const App = () => {
   const [user, setUser] = useState(null);
-  const [users,setUsers]=useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     socket.on("userIsJoined", (data) => {
       if (data.success) {
-        console.log("userJoined",data.users);
         setUsers(data.users);
-      } else {
-        console.log("userJoined error");
       }
     });
+
+    socket.on("userJoinedMessageBroadcasted", (name) => {
+      toast.info(`${name} joined the room`);
+    });
+
+    socket.on("userLeftMessageBroadcasted", (name) => {
+      toast.warn(`${name} left the room`);
+    });
+
+    return () => {
+      socket.off("userIsJoined");
+      socket.off("userJoinedMessageBroadcasted");
+      socket.off("userLeftMessageBroadcasted");
+    };
   }, []);
 
   const uuid = () => {
@@ -40,10 +51,11 @@ const App = () => {
 
   return (
     <div className="Container">
+      <ToastContainer />
       <Routes>
         <Route path="/" element={<Forms uuid={uuid} socket={socket} setUser={setUser} />} />
-        <Route path="/:roomId" element={<RoomPage user={user} socket={socket} users={users}/>} />
-        <Route path="abcd" element={<Hello/>}/>
+        <Route path="/:roomId" element={<RoomPage user={user} socket={socket} users={users} />} />
+        <Route path="/codeeditor" element={<CodeEditor />} />
       </Routes>
     </div>
   );

@@ -21,10 +21,13 @@ const removeUserFromRoom = (socketId, roomId = null) => {
   users = users.filter((u) => u.socketId !== socketId);
 
   if (roomId) {
-    return getUsersInRoom(roomId);
+    return { roomId, user, users: getUsersInRoom(roomId) };
   } else {
-    // Return affected rooms for cleanup
-    return [...new Set(users.map((u) => u.roomId))];
+    const affectedRooms = [...new Set(users.map((u) => u.roomId))];
+    return affectedRooms.map((roomId) => ({
+      roomId,
+      user,
+    }));
   }
 };
 

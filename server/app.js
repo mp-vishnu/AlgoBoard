@@ -1,4 +1,3 @@
-// --- server.js ---
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -26,35 +25,46 @@ app.use(cors());
 const basic = require("./router/basicRouter");
 app.use("/", basic);
 
-let roomIdGlobal, imgURLGlobal;
+// 🧠 Instead of one image globally, we use a map
+const roomWhiteboardData = {}; // { roomId: imgURL }
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("userJoined", (data) => {
     const { name, userId, roomId, host, presenter } = data;
-    roomIdGlobal = roomId;
     socket.join(roomId);
 
     const users = addUser({ ...data, socketId: socket.id });
     io.to(roomId).emit("userIsJoined", { success: true, users });
+    socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
 
-    if (imgURLGlobal) {
-      socket.emit("whiteBoardDataResponse", { imgURL: imgURLGlobal });
+    // 🧠 Send existing whiteboard image if any
+    if (roomWhiteboardData[roomId]) {
+      socket.emit("whiteBoardDataResponse", {
+        imgURL: roomWhiteboardData[roomId],
+      });
     }
   });
 
   socket.on("whiteboardData", ({ imgURL, roomId }) => {
-    imgURLGlobal = imgURL;
+    // 🧠 Store imgURL per room
+    roomWhiteboardData[roomId] = imgURL;
+
+    // Broadcast to others in the room
     socket.broadcast.to(roomId).emit("whiteBoardDataResponse", { imgURL });
   });
 
   socket.on("leaveRoom", ({ roomId }) => {
-    removeUserFromRoom(socket.id, roomId);
-    const users = getUsersInRoom(roomId);
+    const { user } = removeUserFromRoom(socket.id, roomId);
+    if (user) {
+      socket.broadcast.to(roomId).emit("userLeftMessageBroadcasted", user.name);
+    }
 
+    const users = getUsersInRoom(roomId);
     if (users.length === 0) {
       console.log(`Room ${roomId} is now empty.`);
+      // Optionally: delete roomWhiteboardData[roomId] to clean up memory
     } else {
       io.to(roomId).emit("userIsJoined", { success: true, users });
     }
@@ -66,7 +76,13 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
 
     const roomsToUpdate = removeUserFromRoom(socket.id);
-    roomsToUpdate.forEach((roomId) => {
+    roomsToUpdate.forEach(({ roomId, user }) => {
+      if (user) {
+        socket.broadcast
+          .to(roomId)
+          .emit("userLeftMessageBroadcasted", user.name);
+      }
+
       const users = getUsersInRoom(roomId);
       if (users.length > 0) {
         io.to(roomId).emit("userIsJoined", { success: true, users });
