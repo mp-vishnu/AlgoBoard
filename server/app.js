@@ -17,7 +17,12 @@ dotenv.config({ path: "config/config.env" });
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+const io = socketIO(server, {
+  cors: {
+    origin: "*", // Allow all origins, or specify your frontend URL
+    methods: ["GET", "POST"],
+  },
+});
 
 app.use(express.json());
 app.use(cors());
@@ -25,7 +30,7 @@ app.use(cors());
 const basic = require("./router/basicRouter");
 app.use("/", basic);
 
-// 🧠 Instead of one image globally, we use a map
+// Whiteboard data storage per room
 const roomWhiteboardData = {}; // { roomId: imgURL }
 
 io.on("connection", (socket) => {
@@ -39,7 +44,7 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("userIsJoined", { success: true, users });
     socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
 
-    // 🧠 Send existing whiteboard image if any
+    // Send whiteboard data if exists
     if (roomWhiteboardData[roomId]) {
       socket.emit("whiteBoardDataResponse", {
         imgURL: roomWhiteboardData[roomId],
@@ -48,10 +53,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("whiteboardData", ({ imgURL, roomId }) => {
-    // 🧠 Store imgURL per room
     roomWhiteboardData[roomId] = imgURL;
-
-    // Broadcast to others in the room
     socket.broadcast.to(roomId).emit("whiteBoardDataResponse", { imgURL });
   });
 
@@ -64,12 +66,18 @@ io.on("connection", (socket) => {
     const users = getUsersInRoom(roomId);
     if (users.length === 0) {
       console.log(`Room ${roomId} is now empty.`);
-      // Optionally: delete roomWhiteboardData[roomId] to clean up memory
     } else {
       io.to(roomId).emit("userIsJoined", { success: true, users });
     }
 
     socket.leave(roomId);
+  });
+
+  // ✅ REAL-TIME CHAT EVENTS
+  socket.on("sendMessage", ({ roomId, messageData }) => {
+    // Broadcast to everyone in the room
+    socket.broadcast.to(roomId).emit("receiveMessage", messageData); // Send to other users
+    socket.emit("receiveMessage", messageData); // Send to the sender as well
   });
 
   socket.on("disconnect", () => {

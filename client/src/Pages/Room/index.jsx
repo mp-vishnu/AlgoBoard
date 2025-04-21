@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import MonacoEditor from "react-monaco-editor"; // Using react-monaco-editor
+import { useNavigate, useParams } from "react-router-dom";
+import MonacoEditor from "react-monaco-editor";
 import "./index.css";
 import WhiteBoard from "../../Components/Whiteboard";
-import { useParams } from "react-router-dom";
+import ChatBar from "../../Components/ChatBar"; // ✅ added
 
 const RoomPage = ({ user, socket, users }) => {
   const navigate = useNavigate();
@@ -16,7 +16,9 @@ const RoomPage = ({ user, socket, users }) => {
   const [history, setHistory] = useState([]);
   const [openedUserTab, setopenedUserTab] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
-  const { roomId } = useParams(); // 👈 Get roomId from URL
+  const [showChatBar, setShowChatBar] = useState(false); // ✅ new state
+
+  const { roomId } = useParams();
 
   const handleUndo = () => {
     if (elements.length === 0) return;
@@ -37,35 +39,32 @@ const RoomPage = ({ user, socket, users }) => {
     setHistory([]);
   };
 
-  // Navigate to Code Editor Page
   const navigateToCodeEditor = () => {
-    navigate('/codeeditor');
+    navigate("/codeeditor");
   };
 
   return (
     <div className="container">
-
-      {/* Show AlgoBoard Button */}
+      {/* AlgoBoard Button */}
       {!openedUserTab && (
-  <button
-    type="button"
-    onClick={() => setopenedUserTab(true)}
-    className="btn btn-dark"
-    style={{
-      position: "fixed",
-      top: "10px",
-      left: "10px",
-      height: "40px",
-      width: "120px",
-      zIndex: 999,
-      borderTopRightRadius: "8px",
-      borderBottomRightRadius: "8px"
-    }}
-  >
-    AlgoBoard &gt;
-  </button>
-)}
-
+        <button
+          type="button"
+          onClick={() => setopenedUserTab(true)}
+          className="btn btn-dark"
+          style={{
+            position: "fixed",
+            top: "10px",
+            left: "10px",
+            height: "40px",
+            width: "120px",
+            zIndex: 999,
+            borderTopRightRadius: "8px",
+            borderBottomRightRadius: "8px"
+          }}
+        >
+          AlgoBoard &gt;
+        </button>
+      )}
 
       {/* Sidebar */}
       <div className={`sidebar ${openedUserTab ? "open" : ""}`}>
@@ -98,14 +97,21 @@ const RoomPage = ({ user, socket, users }) => {
           )}
         </div>
 
-      
-
         {/* Navigate to Code Editor */}
         <button
           onClick={navigateToCodeEditor}
           className="btn btn-success w-100 mt-4"
         >
           Code Editor
+        </button>
+
+        {/* Chats Button */}
+        <button
+          type="button"
+          className="btn btn-success w-100 mt-4"
+          onClick={() => setShowChatBar(true)} // ✅ toggle ChatBar
+        >
+          Chats
         </button>
       </div>
 
@@ -115,11 +121,9 @@ const RoomPage = ({ user, socket, users }) => {
         <span className="text-primary">[Users Online: {users.length}]</span>
       </div>
 
-      {/* Drawing Tools (only for presenter) */}
+      {/* Drawing Tools (presenter only) */}
       {user?.presenter && (
         <div className="row align-items-center justify-content-center gap-3 mb-5">
-
-          {/* Tool Options */}
           <div className="d-flex gap-3 flex-wrap col-auto">
             {["pencil", "line", "rect", "circle"].map((t) => (
               <div
@@ -142,7 +146,6 @@ const RoomPage = ({ user, socket, users }) => {
             ))}
           </div>
 
-          {/* Color Picker */}
           <div className="d-flex align-items-center gap-2 col-auto">
             <label htmlFor="color" className="mb-0">
               Select Color:
@@ -157,7 +160,6 @@ const RoomPage = ({ user, socket, users }) => {
             />
           </div>
 
-          {/* Undo / Redo */}
           <div className="d-flex gap-2 col-auto">
             <button className="btn btn-primary" onClick={handleUndo}>
               Undo
@@ -167,7 +169,6 @@ const RoomPage = ({ user, socket, users }) => {
             </button>
           </div>
 
-          {/* Clear Canvas */}
           <div className="col-auto">
             <button className="btn btn-danger" onClick={handleClear}>
               Clear Canvas
@@ -176,21 +177,36 @@ const RoomPage = ({ user, socket, users }) => {
         </div>
       )}
 
-      {/* Whiteboard */}
-      <div className="col-md-10 mx-auto mt-4 canvas-box">
-        <WhiteBoard
-          canvasRef={canvasRef}
-          ctxRef={ctxRef}
-          elements={elements}
-          setElements={setElements}
-          tool={tool}
-          color={color}
-          user={user}
-          socket={socket}
-          history={history}
-          setHistory={setHistory}
-          roomId={roomId}
-        />
+      {/* Whiteboard + ChatBar Layout */}
+      <div className="d-flex justify-content-center align-items-start gap-4 px-2">
+        {/* Whiteboard */}
+        <div className="col-md-10 canvas-box">
+          <WhiteBoard
+            canvasRef={canvasRef}
+            ctxRef={ctxRef}
+            elements={elements}
+            setElements={setElements}
+            tool={tool}
+            color={color}
+            user={user}
+            socket={socket}
+            history={history}
+            setHistory={setHistory}
+            roomId={roomId}
+          />
+        </div>
+
+        {/* ChatBar */}
+        {showChatBar && (
+          <div style={{ width: "300px", maxHeight: "85vh", overflowY: "auto" }}>
+            <ChatBar
+              user={user}
+              socket={socket}
+              roomId={roomId}
+              onClose={() => setShowChatBar(false)} // ✅ hide chat
+            />
+          </div>
+        )}
       </div>
     </div>
   );
