@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useLayoutEffect } from "react";
 import rough from "roughjs";
 
@@ -20,34 +19,36 @@ const WhiteBoard = ({
   const [img, setImg] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  // Load elements from localStorage if they exist, and rejoin the room after refresh
   useEffect(() => {
+    // Check if user and roomId are in localStorage
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedRoomId = localStorage.getItem("roomId");
+
+    if (storedUser && storedRoomId) {
+      // Rejoin the room on refresh
+      socket.emit("joinRoom", storedRoomId);
+    }
+
+    // Load elements from localStorage
+    const storedElements = localStorage.getItem(`whiteboard-${storedRoomId || roomId}`);
+    if (storedElements) {
+      setElements(JSON.parse(storedElements));
+    }
+
     socket.on("whiteBoardDataResponse", (data) => {
       setImg(data.imgURL);
     });
 
-    // Cleanup on unmount
-    // return () => {
-    //   socket.off("whiteBoardDataResponse");
-    // };
-  }, []);
+    socket.on("loadWhiteboard", (data) => {
+      setElements(data);
+    });
 
-  if (!user?.presenter) {
-    return (
-      <div className="border border-dark border-2 h-100 w-100 overflow-hidden">
-        {img ? (
-          <img
-            src={img}
-            alt="Real-time whiteboard image shared by presenter"
-            className="w-100 h-100"
-          />
-        ) : (
-          <div className="text-center text-muted p-3">
-            Waiting for presenter...
-          </div>
-        )}
-      </div>
-    );
-  }
+    return () => {
+      socket.off("whiteBoardDataResponse");
+      socket.off("loadWhiteboard");
+    };
+  }, [roomId, setElements, socket]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,7 +103,10 @@ const WhiteBoard = ({
 
     const canvasImage = canvasRef.current.toDataURL();
     socket.emit("whiteboardData", { imgURL: canvasImage, roomId });
-  }, [elements]);
+
+    // Save elements to localStorage
+    localStorage.setItem(`whiteboard-${roomId}`, JSON.stringify(elements));
+  }, [elements, canvasRef, ctxRef, socket, roomId]);
 
   const handleMouseDown = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
@@ -164,6 +168,24 @@ const WhiteBoard = ({
       setHistory([]); // Reset redo stack
     }
   };
+
+  if (!user?.presenter) {
+    return (
+      <div className="border border-dark border-2 h-100 w-100 overflow-hidden">
+        {img ? (
+          <img
+            src={img}
+            alt="Real-time whiteboard image shared by presenter"
+            className="w-100 h-100"
+          />
+        ) : (
+          <div className="text-center text-muted p-3">
+            Waiting for presenter...
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <canvas

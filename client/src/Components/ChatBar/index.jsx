@@ -5,18 +5,29 @@ const ChatBar = ({ user, socket, roomId, onClose }) => {
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !roomId) return;
+
+    // Load persisted messages from localStorage for the room
+    const savedMessages = localStorage.getItem(`messages-${roomId}`);
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
 
     // Listen for incoming messages
     socket.on("receiveMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => {
+        const updatedMessages = [...prev, data];
+        // Persist messages to localStorage
+        localStorage.setItem(`messages-${roomId}`, JSON.stringify(updatedMessages));
+        return updatedMessages;
+      });
     });
 
     // Optional: clean up
     return () => {
       socket.off("receiveMessage");
     };
-  }, [socket]);
+  }, [socket, roomId]);
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -90,7 +101,7 @@ const ChatBar = ({ user, socket, roomId, onClose }) => {
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
         />
         <button className="btn btn-primary" onClick={handleSend}>
-          Send
+          Send 
         </button>
       </div>
     </div>

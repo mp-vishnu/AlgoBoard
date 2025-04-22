@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -71,6 +72,16 @@ io.on("connection", (socket) => {
     }
 
     socket.leave(roomId);
+  });
+
+  // Handle reconnect event
+  socket.on("reconnectUser", (data) => {
+    const { roomId, userId, name } = data;
+    socket.join(roomId);
+    const users = getUsersInRoom(roomId);
+    io.to(roomId).emit("userIsJoined", { success: true, users });
+    socket.emit("userRejoined", { userId, name });
+    socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
   });
 
   // ✅ REAL-TIME CHAT EVENTS

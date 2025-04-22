@@ -8,6 +8,7 @@ import './App.css';
 import Forms from './Components/Forms';
 import RoomPage from './Pages/Room';
 import CodeEditor from "./Pages/Editor/CodeEditor";
+
 const server = "http://localhost:8000";
 const connectionOptions = {
   "force new connection": true,
@@ -21,6 +22,7 @@ const socket = io(server, connectionOptions);
 const App = () => {
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]);
+  const [roomId, setRoomId] = useState(null);
 
   useEffect(() => {
     socket.on("userIsJoined", (data) => {
@@ -36,6 +38,12 @@ const App = () => {
     socket.on("userLeftMessageBroadcasted", (name) => {
       toast.warn(`${name} left the room`);
     });
+
+    // Try to reconnect to the room if roomId is in localStorage
+    const savedRoomId = localStorage.getItem("roomId");
+    if (savedRoomId) {
+      setRoomId(savedRoomId);
+    }
 
     return () => {
       socket.off("userIsJoined");
@@ -54,7 +62,10 @@ const App = () => {
       <ToastContainer />
       <Routes>
         <Route path="/" element={<Forms uuid={uuid} socket={socket} setUser={setUser} />} />
-        <Route path="/:roomId" element={<RoomPage user={user} socket={socket} users={users} />} />
+        <Route
+          path="/:roomId"
+          element={<RoomPage user={user} socket={socket} users={users} roomId={roomId} />}
+        />
         <Route path="/codeeditor" element={<CodeEditor />} />
       </Routes>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const CreateRoomForm = ({ uuid, socket, setUser }) => {
@@ -7,27 +7,36 @@ const CreateRoomForm = ({ uuid, socket, setUser }) => {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("userData");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setName(parsedUser.name || "");
+      setRoomId(parsedUser.roomId || uuid());
+    }
+  }, []);
+
   const handleCreateRoom = (e) => {
     e.preventDefault();
-  
+
     if (!name.trim()) {
       alert("Please enter your name.");
       return;
     }
-  
+
     const userData = {
       name,
       roomId,
-      userId: uuid(),   // 🔥 userId is required on server side
+      userId: uuid(),
       presenter: true,
       host: true,
     };
-  
+
     setUser(userData);
-    socket.emit("userJoined", userData); // 🔥 fixed event name
+    localStorage.setItem("userData", JSON.stringify(userData));
+    socket.emit("userJoined", userData);
     navigate(`/${roomId}`);
   };
-  
 
   const handleGenerate = () => {
     const newId = uuid();
@@ -39,7 +48,7 @@ const CreateRoomForm = ({ uuid, socket, setUser }) => {
     try {
       await navigator.clipboard.writeText(roomId);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset after 2s
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy: ", err);
     }

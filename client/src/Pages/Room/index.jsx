@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import MonacoEditor from "react-monaco-editor";
 import "./index.css";
 import WhiteBoard from "../../Components/Whiteboard";
-import ChatBar from "../../Components/ChatBar"; // ✅ added
+import ChatBar from "../../Components/ChatBar"; 
 
 const RoomPage = ({ user, socket, users }) => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const RoomPage = ({ user, socket, users }) => {
   const [history, setHistory] = useState([]);
   const [openedUserTab, setopenedUserTab] = useState(false);
   const [showUserList, setShowUserList] = useState(false);
-  const [showChatBar, setShowChatBar] = useState(false); // ✅ new state
+  const [showChatBar, setShowChatBar] = useState(false); 
 
   const { roomId } = useParams();
 
@@ -109,7 +109,7 @@ const RoomPage = ({ user, socket, users }) => {
         <button
           type="button"
           className="btn btn-success w-100 mt-4"
-          onClick={() => setShowChatBar(true)} // ✅ toggle ChatBar
+          onClick={() => setShowChatBar(true)} 
         >
           Chats
         </button>
@@ -203,7 +203,7 @@ const RoomPage = ({ user, socket, users }) => {
               user={user}
               socket={socket}
               roomId={roomId}
-              onClose={() => setShowChatBar(false)} // ✅ hide chat
+              onClose={() => setShowChatBar(false)} 
             />
           </div>
         )}
